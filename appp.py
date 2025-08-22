@@ -1,59 +1,56 @@
 import streamlit as st
 import pickle
 import string
-from nltk.corpus import stopwords
 import nltk
+from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
+# Download NLTK
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Initialize stemmer
 ps = PorterStemmer()
 
+# Text preprocessing function
+def transform_message(message):
+    # Lowercase
+    message = message.lower()
+    # Tokenize
+    words = nltk.word_tokenize(message)
 
-def transform_Message(Message):
-    Message = Message.lower()
-    Message = nltk.word_tokenize(Message)
+    # Remove alphanumeric and stopwords
+    filtered_words = []
+    for word in words:
+        if word.isalnum():
+            if word not in stopwords.words('english') and word not in string.punctuation:
+                filtered_words.append(ps.stem(word))  # Stemming
 
-    y = []
-    for i in Message:
-        if i.isalnum():
-            y.append(i)
+    return " ".join(filtered_words)
 
-    Message = y[:]
-    y.clear()
-
-    for i in Message:
-        if i not in stopwords.words('english') and i not in string.punctuation:
-            y.append(i)
-
-    Message = y[:]
-    y.clear()
-
-    for i in Message:
-        y.append(ps.stem(i))
-
-    return " ".join(y)
-
-
-import pickle
+# Load trained model and vectorizer
 tfidf = pickle.load(open('vectorizer.pkl', 'rb'))
 model = pickle.load(open('model.pkl', 'rb'))
 
-st.title("Email Spam Classifier")
+# Streamlit App UI
+st.title("📧 Email Spam Classifier")
 
-input_mail = st.text_area("Enter the message")
+# Input box
+input_mail = st.text_area("Enter your email content here:")
 
-
+# Predict button
 if st.button('Predict'):
-    # 1. preprocess
-    transformed_mail = transform_Message(input_mail)
+    # Step 1: Preprocess input
+    transformed_mail = transform_message(input_mail)
 
-    # 2. vectorize
+    # Step 2: Vectorize
     vector_input = tfidf.transform([transformed_mail])
 
-    # 3. predict
+    # Step 3: Predict
     result = model.predict(vector_input.toarray())[0]
 
-    # 4. Display
+    # Step 4: Output
     if result == 1:
-        st.header("Spam")
+        st.error("🚫 This is a SPAM message.")
     else:
-        st.header("Not Spam")
+        st.success("✅ This is NOT a spam message.")
